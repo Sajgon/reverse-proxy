@@ -1,6 +1,14 @@
 // Requires
 const http = require('http');
+const https = require('https');
 const httpProxy = require('http-proxy');
+const tls = require('tls');
+const fs = require('fs');
+const path = require('path');
+
+// Read all certs from certbot into an object
+let certs = readCerts("/etc/letsencrypt/live");
+console.log(certs);
 
 // Create a new reverse proxy
 const proxy = httpProxy.createProxyServer();
@@ -12,7 +20,14 @@ proxy.on('error',function(e){
 })
 
 // Create a new webserver
-http.createServer((req,res) => {
+https.createServer({
+  // SNICallback let's us get the correct cert
+  // depening on what the domain the user asks for
+  SNICallback: (domain, callback) => callback(null, certs[domain].secureContext),
+  // But we still have the server with a "default" cert
+  key: certs['vintergatan5a.se'].key,
+  cert: certs['vintergatan5a.se'].cert
+},(req,res) => {
 
   // Set/replace response headers
   setResponseHeaders(req,res);
@@ -27,15 +42,14 @@ http.createServer((req,res) => {
 
   let port;
 
-  
   if(urlParts[1] == '.well-known'){
-      port = 5000;  // app: certbot
+    port = 5000; // app: certbot-helper
   }
   else if(subDomain == '' || subDomain == 'www'){
-    port = 4001;    // app: main
+    port = 4001; // app: testapp
   }
   else if(subDomain == 'cooling'){
-    port = 3000;    // app: sub domain
+    port = 3000; // app: example
   }
   else {
     res.statusCode = 500;
@@ -46,7 +60,7 @@ http.createServer((req,res) => {
     proxy.web(req,res,{target:'http://127.0.0.1:' + port});
   }
 
-}).listen(80);
+}).listen(443);
 
 
 function setResponseHeaders(req,res){
@@ -68,3 +82,21 @@ function setResponseHeaders(req,res){
 
 }
 
+function readCerts(pathToCerts){
+
+  let certs = {},
+      domains = fs.readdirSync(pathToCerts);
+
+  // Read all ssl certs into memory from file
+  for(let domain of domains){
+    let domainName = domain.split('-0')[0];
+    certs[domainName] = {
+      key:  fs.readFileSync(path.join(pathToCerts,domain,'privkey.pem')),
+      cert: fs.readFileSync(path.join(pathToCerts,domain,'fullchain.pem'))
+    };
+    certs[domainName].secureContext = tls.createSecureContext(certs[domainName]);
+  }
+
+  return certs;
+
+}
