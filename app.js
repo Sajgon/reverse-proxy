@@ -5,6 +5,7 @@ const httpProxy = require('http-proxy');
 const tls = require('tls');
 const fs = require('fs');
 const path = require('path');
+const exec = require('child_process').exec;
 
 // Read all certs from certbot into an object
 let certs = readCerts("/etc/letsencrypt/live");
@@ -47,8 +48,8 @@ https.createServer({
     certs[domain] ? certs[domain].secureContext : null
   ),
   // But we still have the server with a "default" cert
-  key: certs['vintergatan5a.se'].key,
-  cert: certs['vintergatan5a.se'].cert
+  key: certs['vintergatan.se'].key,
+  cert: certs['vintergatan.se'].cert
 },(req,res) => {
 
   // Set/replace response headers
@@ -64,15 +65,23 @@ https.createServer({
 
   let port;
 
-  if(subDomain == '' || subDomain == 'www'){
+  // Don't run our main site on both www and non-www.
+  // Choose non-www domain
+  if(subDomain == 'www'){
+    // redirect to domain without www
+    let url = 'https://' + domain + '.' + topDomain + req.url;
+    res.writeHead(301, {'Location': url});
+    res.end();
+  }
+  else if(subDomain == ''){
     port = 4001; // app: testapp
   }
   else if(subDomain == 'cooling'){
     port = 3000; // app: example
   }
   else {
-    res.statusCode = 500;
-    res.end('Can not find your app!');
+    res.statusCode = 404;
+    res.end('No such url!');
   }
 
   if(port){
@@ -119,3 +128,17 @@ function readCerts(pathToCerts){
   return certs;
 
 }
+
+function renewCerts(){
+
+  exec('certbot renew',(error,stdOut,stdError)=>{
+    console.log('renewing certs',stdOut);
+    certs = readCerts('/etc/letsencrypt/live');
+  });
+
+}
+
+// Renew certs if needed on start
+renewCerts();
+// and then once every day
+setInterval(renewCerts, 1000 * 60 * 60 * 24);
