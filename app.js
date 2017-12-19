@@ -48,8 +48,8 @@ https.createServer({
     certs[domain] ? certs[domain].secureContext : null
   ),
   // But we still have the server with a "default" cert
-  key: certs['vintergatan.se'].key,
-  cert: certs['vintergatan.se'].cert
+  key: certs['vintergatan5a.se'].key,
+  cert: certs['vintergatan5a.se'].cert
 },(req,res) => {
 
   // Set/replace response headers
