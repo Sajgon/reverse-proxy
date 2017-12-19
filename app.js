@@ -74,10 +74,12 @@ https.createServer({
     res.end();
   }
   else if(subDomain == ''){
-    port = 4001; // app: testapp
+    port = 4001; // app: main
   }
+  else if(subDomain == 'week'){
+     port = 2999; // app: week-vintergatan5a.se
   else if(subDomain == 'cooling'){
-    port = 3000; // app: example
+    port = 3000; // app: sub-vintergatan5a.se
   }
   else {
     res.statusCode = 404;
