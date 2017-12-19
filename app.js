@@ -78,6 +78,7 @@ https.createServer({
   }
   else if(subDomain == 'week'){
      port = 2999; // app: week-vintergatan5a.se
+  }
   else if(subDomain == 'cooling'){
     port = 3000; // app: sub-vintergatan5a.se
   }
@@ -104,7 +105,7 @@ function setResponseHeaders(req,res){
   res.writeHead = function(statusCode, headers){
 
     // set/replace our own headers
-    res.setHeader('x-powered-by','Thomas supercoola server');
+    res.setHeader('x-powered-by','Antons server');
 
     // call the original write head function as well
     res.oldWriteHead(statusCode,headers);
